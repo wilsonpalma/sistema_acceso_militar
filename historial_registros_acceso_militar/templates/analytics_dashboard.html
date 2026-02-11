@@ -1,0 +1,328 @@
+{# templates/historial/analytics_dashboard.html #}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Dashboard de Access Attempts</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:1rem;}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.2rem;}
+    .card{padding:1rem;border:1px solid #e1e1e1;border-radius:6px;background:#fff;}
+    canvas{max-width:100%;height:320px;}
+    .full { grid-column: 1 / -1; } /* para charts que ocupen toda la fila */
+  </style>
+  <style>
+    /* Interfaz de Centro de Mando Táctico */
+    body {
+        background-color: #050805; /* Negro militar profundo */
+        color: #00ff41; /* Verde matriz/fósforo */
+        font-family: 'Share Tech Mono', 'Courier New', monospace;
+        margin: 0;
+        padding: 20px;
+        border: 5px solid #223022; /* Marco exterior tipo búnker */
+    }
+
+    /* Encabezado del Dashboard */
+    h1, h2 {
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        border-left: 10px solid #00ff41;
+        padding-left: 15px;
+        margin-bottom: 20px;
+        text-shadow: 0 0 8px rgba(0, 255, 65, 0.6);
+    }
+
+    /* Panel de Controles (Rango temporal y Refrescar) */
+    .controls {
+        background: #121a12;
+        border: 1px dashed #00ff41;
+        padding: 15px;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    button {
+        background: #1b5e20; /* Verde oliva oscuro */
+        color: #fff;
+        border: 1px solid #00ff41;
+        padding: 8px 20px;
+        cursor: pointer;
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    button:hover {
+        background: #00ff41;
+        color: #000;
+    }
+
+    /* Contenedores de Gráficos (Intentos por zona, Día, etc.) */
+    .chart-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .chart-card {
+        border: 1px solid #2f3e2e;
+        background: rgba(26, 29, 26, 0.8);
+        padding: 20px;
+        position: relative;
+    }
+
+    /* Efecto de 'Escaneo' en las tarjetas */
+    .chart-card::before {
+        content: "SECURED_DATA";
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-size: 0.6em;
+        color: #2f3e2e;
+    }
+
+    /* Secciones de correspondencias (Zonas y Rangos) */
+    .correspondencias {
+        margin-top: 40px;
+        padding: 20px;
+        border-top: 2px double #00ff41;
+    }
+
+    .loading-text {
+        font-style: italic;
+        color: #ff9800; /* Ámbar de advertencia para estados de carga */
+        animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+        50% { opacity: 0; }
+    }
+
+    .card{
+        filter: invert(1) brightness(2);
+    }
+
+    input {
+        background: #00ff41;
+    }
+  </style>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>Analytics — Intentos de Acceso</h1>
+  <p>Rango temporal: <input id="days" type="number" min="1" value="30" style="width:80px"> días
+     <button id="refresh">Refrescar</button>
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Intentos por zona</h3>
+      <canvas id="chartZone"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>Permitidos vs Denegados</h3>
+      <canvas id="chartAllowedPie"></canvas>
+    </div>
+
+    <div class="card full">
+      <h3>Intentos por día</h3>
+      <canvas id="chartTime"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>Top offenders (más intentos)</h3>
+      <canvas id="chartTop"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>Permitidos por rango</h3>
+      <canvas id="chartRank"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // util: fetch JSON and return parsed data or throw
+    async function fetchJson(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status + " fetching " + url);
+      return res.json();
+    }
+
+    // init chart objects (empty)
+    let chartZone, chartAllowedPie, chartTime, chartTop, chartRank;
+
+    function makeBar(ctx, labels, data, label) {
+      return new Chart(ctx, {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ label:label, data:data }] },
+        options: { responsive:true, scales: { y: { beginAtZero:true } } }
+      });
+    }
+
+    function makeHorizontalBar(ctx, labels, data, label) {
+      return new Chart(ctx, {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ label: label, data: data }] },
+        options: { indexAxis: 'y', responsive:true, scales: { x: { beginAtZero: true } } }
+      });
+    }
+
+    function makeLine(ctx, labels, data, label) {
+      return new Chart(ctx, {
+        type: 'line',
+        data: { labels: labels, datasets: [{ label: label, data: data, fill:false, tension:0.2 }] },
+        options: { responsive:true, scales: { y: { beginAtZero:true } } }
+      });
+    }
+
+    function makePie(ctx, labels, data) {
+      return new Chart(ctx, {
+        type: 'pie',
+        data: { labels: labels, datasets: [{ data: data }] },
+        options: { responsive:true }
+      });
+    }
+
+    function makeDoughnut(ctx, labels, data) {
+      return new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: labels, datasets: [{ data: data }] },
+        options: { responsive:true }
+      });
+    }
+
+    async function refreshAll() {
+      const days = document.getElementById('days').value || 30;
+
+      // 1) attempts by zone
+      try {
+        const d1 = await fetchJson("{% url 'historial:api_attempts_by_zone' %}?days=" + days);
+        const ctx1 = document.getElementById('chartZone').getContext('2d');
+        if (chartZone) chartZone.destroy();
+        chartZone = makeBar(ctx1, d1.labels, d1.datasets[0].data, d1.datasets[0].label || "Intentos");
+      } catch (e) { console.error(e); }
+
+      // 2) allowed vs denied (pie)
+      try {
+        const d2 = await fetchJson("{% url 'historial:api_allowed_vs_denied' %}?days=" + days);
+        const ctx2 = document.getElementById('chartAllowedPie').getContext('2d');
+        if (chartAllowedPie) chartAllowedPie.destroy();
+        chartAllowedPie = makePie(ctx2, d2.labels, d2.datasets[0].data);
+      } catch (e) { console.error(e); }
+
+      // 3) attempts over time (line)
+      try {
+        const d3 = await fetchJson("{% url 'historial:api_attempts_over_time' %}?days=" + days);
+        const ctx3 = document.getElementById('chartTime').getContext('2d');
+        if (chartTime) chartTime.destroy();
+        chartTime = makeLine(ctx3, d3.labels, d3.datasets[0].data, d3.datasets[0].label || "Intentos/día");
+      } catch (e) { console.error(e); }
+
+      // 4) top offenders
+      try {
+        const d4 = await fetchJson("{% url 'historial:api_top_offenders' %}?days=" + days + "&limit=10");
+        const ctx4 = document.getElementById('chartTop').getContext('2d');
+        if (chartTop) chartTop.destroy();
+        chartTop = makeHorizontalBar(ctx4, d4.labels, d4.datasets[0].data, "Intentos");
+      } catch (e) { console.error(e); }
+
+      // 5) allowed by rank (doughnut)
+      try {
+        const d5 = await fetchJson("{% url 'historial:api_allowed_rate_by_rank' %}?days=" + days);
+        const ctx5 = document.getElementById('chartRank').getContext('2d');
+        if (chartRank) chartRank.destroy();
+        chartRank = makeDoughnut(ctx5, d5.labels, d5.datasets[0].data);
+      } catch (e) { console.error(e); }
+
+    }
+
+    document.getElementById('refresh').addEventListener('click', refreshAll);
+    // auto load
+    document.addEventListener('DOMContentLoaded', refreshAll);
+  </script>
+<!-- Legend mappings: colocar debajo de los charts en analytics_dashboard.html -->
+<hr style="margin:1.5rem 0;">
+<section class="legend-section" style="margin-bottom:1.5rem;">
+  <h2>Correspondencias (código → nombre)</h2>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+    <div class="card" style="padding:0.75rem;">
+      <h4 style="margin:0 0 .5rem 0">Zonas (code → name)</h4>
+      <div id="zoneMappings">Cargando zonas…</div>
+    </div>
+
+    <div class="card" style="padding:0.75rem;">
+      <h4 style="margin:0 0 .5rem 0">Rangos (code → name)</h4>
+      <div id="rankMappings">Cargando rangos…</div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // endpoints (usa los nombres de url que pusiste en urlpatterns)
+  const ZONES_MAP_URL = "{% url 'historial:api_distinct_zones_from_mongo' %}";
+  const RANKS_MAP_URL = "{% url 'historial:api_distinct_ranks_from_mongo' %}";
+
+  // render table helper
+  function renderCodeNameTable(containerId, items, emptyMsg="No hay datos") {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (!items || items.length === 0) {
+      container.innerHTML = `<div class="muted" style="color:#666">${emptyMsg}</div>`;
+      return;
+    }
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:0.95rem">';
+    html += '<thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e6e6e6">Código</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e6e6e6">Nombre</th></tr></thead><tbody>';
+    items.forEach(it => {
+      const code = it.code || "";
+      const name = it.name || "";
+      html += `<tr><td style="padding:6px 8px;border-bottom:1px solid #f6f6f6;font-weight:700">${code}</td><td style="padding:6px 8px;border-bottom:1px solid #f6f6f6">${name}</td></tr>`;
+    });
+    html += "</tbody></table>";
+    container.innerHTML = html;
+  }
+
+  async function fetchJsonOrNull(url) {
+    try {
+      const r = await fetch(url, {cache: "no-store"});
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return await r.json();
+    } catch (err) {
+      console.warn("Error fetching", url, err);
+      return null;
+    }
+  }
+
+  async function refreshMappings() {
+    // zonas
+    const zones = await fetchJsonOrNull(ZONES_MAP_URL);
+    if (zones === null) {
+      renderCodeNameTable("zoneMappings", [], "No se pudieron cargar las zonas desde Mongo");
+    } else {
+      renderCodeNameTable("zoneMappings", zones, "No hay zonas registradas");
+    }
+
+    // rangos
+    const ranks = await fetchJsonOrNull(RANKS_MAP_URL);
+    if (ranks === null) {
+      renderCodeNameTable("rankMappings", [], "No se pudieron cargar los rangos desde Mongo");
+    } else {
+      renderCodeNameTable("rankMappings", ranks, "No hay rangos registrados");
+    }
+  }
+
+  // Llamar cuando la página cargue y cuando el usuario pulse "Refrescar"
+  document.addEventListener('DOMContentLoaded', () => {
+    refreshMappings();
+    // si tienes botón #refresh que refresca charts, conéctalo también
+    const btn = document.getElementById('refresh');
+    if (btn) btn.addEventListener('click', refreshMappings);
+  });
+</script>
+
+</body>
+</html>

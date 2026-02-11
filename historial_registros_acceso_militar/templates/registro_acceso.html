@@ -1,0 +1,170 @@
+{# templates/historial/registro_acceso.html #}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Registro Intento de Acceso</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    /* estilo mínimo para mejor lectura */
+    body { font-family: Arial, sans-serif; padding: 1.5rem; max-width: 800px; margin: auto; }
+    .form-row { margin-bottom: .75rem; }
+    label { display:block; margin-bottom:.25rem; font-weight:600; }
+    input[type=text], select { width:100%; padding:.5rem; box-sizing:border-box; }
+    .muted { color:#7d7d7d; font-size:.9rem; margin-top: .5rem;}
+  </style>
+  <style>
+    /* Estilo General con estética militar/táctica */
+    body {
+        background-color: #0b0c0b; /* Negro profundo */
+        color: #4dfd4d; /* Verde neón tipo monitor antiguo */
+        font-family: 'Courier New', Courier, monospace;
+        padding: 20px;
+    }
+
+    /* Contenedor del Formulario */
+    form {
+        border: 2px solid #2f3e2e; /* Verde oliva oscuro */
+        padding: 30px;
+        background-color: #1a1d1a;
+        max-width: 600px;
+        margin: auto;
+        box-shadow: 0 0 15px rgba(0, 255, 0, 0.1);
+        text-transform: uppercase; /* Todo en mayúsculas para tono oficial */
+    }
+
+    /* Título de la sección */
+    h2 {
+        border-bottom: 1px solid #4dfd4d;
+        padding-bottom: 10px;
+        letter-spacing: 2px;
+    }
+
+    /* Etiquetas (Labels) */
+    label {
+        display: block;
+        margin-top: 15px;
+        font-weight: bold;
+        font-size: 0.9em;
+    }
+
+    /* Campos de entrada (Inputs y Selects) */
+    input[type="text"], 
+    input[type="number"], 
+    select {
+        width: 100%;
+        background-color: #000;
+        border: 1px solid #4dfd4d;
+        color: #4dfd4d;
+        padding: 10px;
+        margin-top: 5px;
+        box-sizing: border-box;
+    }
+
+    input:focus, select:focus {
+        outline: none;
+        box-shadow: 0 0 10px #4dfd4d;
+    }
+
+    /* Mensajes de ayuda (Help Text) */
+    p {
+        font-size: 0.75em;
+        color: #888;
+        margin-top: 2px;
+    }
+
+    /* Botón de Enviar */
+    button[type="submit"] {
+        background-color: #2f3e2e; /* Verde militar */
+        color: #ffffff;
+        border: 2px solid #4dfd4d;
+        padding: 12px 24px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-top: 25px;
+        width: 100%;
+        transition: background 0.3s;
+    }
+
+    button[type="submit"]:hover {
+        background-color: #4dfd4d;
+        color: #000;
+    }
+
+    /* Alertas de Mensajes */
+    .messages {
+        background-color: #421111; /* Rojo oscuro para alertas */
+        color: #ff0000;
+        border: 1px solid #ff0000;
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center;">Registrar intento de acceso</h1>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div style="text-align: center; margin-bottom: 1rem;" class="alert">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="form-row">
+      <label>Identificación</label>
+      <label><input type="radio" name="id_type" value="service" checked> Service Number</label>
+      <label><input type="radio" name="id_type" value="badge"> Badge ID</label>
+    </div>
+
+    <div class="form-row">
+      <label for="id_value">Valor</label>
+      <input id="id_value" name="id_value" type="text" required placeholder="Ingrese service_number o badge_id según corresponda">
+      <div class="muted">Escriba el valor del identificador seleccionado.</div>
+    </div>
+
+    <div class="form-row">
+      <label for="zone_code">Zona</label>
+      <select id="zone_code" name="zone_code" required>
+        <option value="" disabled selected>-- Seleccione zona --</option>
+        {% for z in zonas %}
+          <option value="{{ z.code }}" data-min-rank="{{ z.min_rank_level }}" data-clearance="{{ z.required_clearance_name }}">
+            {{ z.code }} — {{ z.name }}
+          </option>
+        {% endfor %}
+      </select>
+      <div class="muted">Zonas obtenidas desde el servicio central.</div>
+    </div>
+
+    <div class="form-row">
+      <label for="gate_id">Gate ID (opcional)</label>
+      <input id="gate_id" name="gate_id" type="text" placeholder="GATE-1">
+    </div>
+
+    <div class="form-row">
+      <label for="device">Device (opcional)</label>
+      <input id="device" name="device" type="text" placeholder="terminal-v1">
+    </div>
+
+    <button type="submit">Enviar intento</button>
+  </form>
+
+  <script>
+    // Mejora UX: cambiar placeholder según radio seleccionado
+    const radios = document.querySelectorAll('input[name="id_type"]');
+    const idInput = document.getElementById('id_value');
+
+    function updatePlaceholder() {
+      const selected = document.querySelector('input[name="id_type"]:checked').value;
+      if (selected === 'service') {
+        idInput.placeholder = 'Ej: SN-20245';
+      } else {
+        idInput.placeholder = 'Ej: BADGE-9832';
+      }
+    }
+    radios.forEach(r => r.addEventListener('change', updatePlaceholder));
+    document.addEventListener('DOMContentLoaded', updatePlaceholder);
+  </script>
+</body>
+</html>

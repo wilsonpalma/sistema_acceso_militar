@@ -1,0 +1,143 @@
+/* styles.css
+   Estilo claro, colorido y directo para "Analíticas de estudiantes y eventos"
+   - Encabezados centrados y llamativos
+   - Figuras y captions centrados
+   - Estilos sencillos para tablas, listas, código y bloques <pre>
+*/
+
+:root{
+  --bg: #f6f8ff;            /* fondo general */
+  --panel: #ffffff;         /* fondo de secciones */
+  --text: #0f1724;
+  --muted: #6b7280;
+  --primary: #ff6b6b;       /* rojo anaranjado */
+  --secondary: #5b8cff;     /* azul vivo */
+  --accent: #ffd166;        /* amarillo cálido */
+  --glass: rgba(90,130,255,0.08);
+  --radius: 10px;
+  --shadow: 0 8px 20px rgba(21, 72, 192, 0.507);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+  --sans: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --max-width: 1100px;
+}
+
+/* Reset sencillo */
+* { box-sizing: border-box; }
+html,body { height:100%; margin:0; padding:0; font-family:var(--sans); background:var(--bg); color:var(--text); }
+a { color:var(--secondary); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+/* Contenedor central */
+.container {
+  width:100%;
+  max-width:var(--max-width);
+  margin:28px auto;
+  padding:18px;
+}
+
+/* Encabezados - centrados, grandes y coloridos */
+h1, h2, h3 {
+  width: 100%;
+  padding: .5rem;
+  text-align:center;
+  margin:10px 0 14px 0;
+  line-height:1.05;
+  letter-spacing:-0.4px;
+}
+
+/* H1: degradado fuerte */
+h1 {
+  font-size:2.1rem;
+  background: linear-gradient(90deg, var(--primary), var(--secondary) 60%, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight:700;
+}
+
+/* H2: borde inferior y color */
+h2 {
+  font-size:1.25rem;
+  color:var(--text);
+  padding: 1rem 1rem;
+  font-weight:700;
+  padding-bottom:6px;
+  border-bottom:4px solid linear-gradient(90deg, var(--accent), var(--secondary)); /* fallback visual */
+  display:inline-block;
+  border-radius:6px;
+  background: linear-gradient(90deg, rgba(255,107,107,0.24), rgba(91,140,255,0.16));
+}
+
+/* H3: subtítulos coloridos */
+h3 {
+  font-size:1.5rem;
+  /* color:var(--secondary); */
+  font-weight:600;
+}
+
+/* Párrafos y texto */
+p { margin:0 0 12px 0; color:var(--text); }
+.lead { color:var(--muted); font-size:0.98rem; }
+
+/* Listas */
+ul, ol { margin:0 0 12px 1.1rem; padding:.5rem; background: rgba(0, 0, 0, 0.132); width: min-content; border: 4px solid rgba(0, 0, 0, 0.267);}
+li { margin:6px 0; }
+
+/* Figuras e imágenes */
+figure { margin:12px auto; max-width:100%; background:var(--panel); border-radius:var(--radius); padding:10px; box-shadow:var(--shadow); }
+figure img { display:block; margin:0 auto; max-width:100%; height:auto; border-radius:8px; border: 4px solid rgba(0, 0, 0, 0.267);}
+figcaption { text-align:center; margin-top:8px; font-size:0.92rem; color:var(--muted); }
+
+/* Tarjeta simple para secciones */
+section, .card {
+  background:var(--panel);
+  border-radius:var(--radius);
+  padding:14px;
+  margin:12px 0;
+  box-shadow:var(--shadow);
+}
+
+/* Grid ligera para KPIs (si hay) */
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:12px; margin-top:8px; }
+.kpi { padding:10px; border-radius:10px; background: linear-gradient(180deg, rgba(255,217,102,0.06), rgba(91,140,255,0.03)); text-align:center; }
+.kpi .num { font-size:1.2rem; font-weight:700; color:var(--text); }
+.kpi .label { font-size:0.85rem; color:var(--muted); margin-top:6px; }
+
+/* Tablas sencillas y legibles */
+table { width:100%; border-collapse:collapse; margin-top:8px; font-size:0.95rem; background:transparent; border-radius:8px; overflow:hidden; }
+thead th { text-align:left; padding:10px; font-weight:700; background: linear-gradient(90deg, rgba(91,140,255,0.06), rgba(255,107,107,0.04)); }
+tbody td { padding:10px; border-top:1px solid rgba(15,23,42,0.04); }
+tbody tr:nth-child(odd) { background: rgba(11,108,240,0.02); }
+
+/* Código y preformateado */
+pre, code {
+  font-family: var(--mono);
+  background: linear-gradient(180deg, #0b1220, #071022);
+  color:#e6f3ff;
+  border-radius:8px;
+}
+code { padding:0.15rem 0.4rem; font-size:0.92rem; display:inline-block; }
+pre { padding:12px; overflow:auto; font-size:0.92rem; margin:8px 0; }
+
+/* Badges / etiquetas pequeñas */
+.badge {
+  display:inline-block; padding:6px 10px; border-radius:999px; font-size:0.82rem; color:#fff;
+  background: linear-gradient(90deg, var(--secondary), var(--primary));
+  box-shadow: 0 8px 18px rgba(91,140,255,0.12);
+}
+
+/* Footer / nota */
+.note { font-size:0.88rem; color:var(--muted); text-align:right; margin-top:8px; }
+
+/* Responsive simple */
+@media (max-width:600px){
+  .container { padding:12px; }
+  h1 { font-size:1.5rem; }
+  h2 { font-size:1.05rem; display:block; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Accesibilidad: reduce motion */
+@media (prefers-reduced-motion: reduce){
+  * { transition:none !important; animation:none !important; }
+}
